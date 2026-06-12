@@ -3009,7 +3009,8 @@ window.saveHawzModal = function() {
       accessBadge +
       ' | <span onclick="doLogout()" style="text-decoration:underline;cursor:pointer">خروج</span>' +
       (isAdmin ? ' | <span onclick="openAdminPwPanel()" style="text-decoration:underline;cursor:pointer;color:#f9e79f">إدارة المستخدمين</span>' : '') +
-      (isAdmin ? ' | <span onclick="openDriveLinkPanel()" style="text-decoration:underline;cursor:pointer;color:#a9cce3">☁️ Drive</span>' : '');
+      (isAdmin ? ' | <span onclick="openDriveLinkPanel()" style="text-decoration:underline;cursor:pointer;color:#a9cce3">☁️ Drive</span>' : '') +
+      (isAdmin ? ' | <span onclick="openUploadPanel()" style="text-decoration:underline;cursor:pointer;color:#a9dfbf">📤 رفع JSON</span>' : '');
 
     // If read-only, disable write actions
     if (!isWrite) {
@@ -3894,5 +3895,123 @@ window.saveCaseModal = function() {
     </div>
   </div>
 </div>
+
+<!-- ══ UPLOAD JSON TO SUPABASE PANEL ══ -->
+<div id="upload-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9995;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;width:min(500px,95vw);box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;animation:authDrop .3s ease">
+    <div style="background:linear-gradient(135deg,#1a7a4e,#0d4e2b);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:17px;font-weight:800">📤 رفع ملف JSON إلى قاعدة البيانات</div>
+        <div style="font-size:12px;opacity:.8;margin-top:3px">استيراد البيانات مباشرةً إلى Supabase</div>
+      </div>
+      <button onclick="closeUploadPanel()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div style="padding:24px">
+      <div style="background:#f0faf5;border:1.5px dashed #27ae60;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px">
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;color:#333;margin-bottom:12px">اختر ملف <strong>JSON</strong> يحتوي على مصفوفة العقارات</div>
+        <input id="upload-json-input" type="file" accept=".json,application/json"
+          style="display:none" onchange="handleUploadFile(this)">
+        <button onclick="document.getElementById('upload-json-input').click()"
+          style="background:#27ae60;color:#fff;border:none;padding:10px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
+          اختيار ملف
+        </button>
+      </div>
+      <div id="upload-panel-info" style="display:none;background:#eafaf1;border:1px solid #a9dfbf;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1e8449"></div>
+      <div id="upload-panel-error" style="display:none;background:#fdecea;border:1px solid #f5c6c6;border-radius:9px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c0392b"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button id="upload-confirm-btn" onclick="confirmUpload()" disabled
+          style="flex:1;background:linear-gradient(135deg,#1a7a4e,#0d4e2b);color:#fff;border:none;padding:11px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;opacity:.5">
+          📤 رفع إلى Supabase
+        </button>
+        <button onclick="closeUploadPanel()"
+          style="background:#f0f0f0;color:#333;border:none;padding:11px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          إلغاء
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var _uploadParsed = null;
+
+  window.openUploadPanel = function() {
+    _uploadParsed = null;
+    document.getElementById('upload-json-input').value = '';
+    document.getElementById('upload-panel-info').style.display = 'none';
+    document.getElementById('upload-panel-error').style.display = 'none';
+    document.getElementById('upload-confirm-btn').disabled = true;
+    document.getElementById('upload-confirm-btn').style.opacity = '.5';
+    document.getElementById('upload-panel').style.display = 'flex';
+  };
+
+  window.closeUploadPanel = function() {
+    document.getElementById('upload-panel').style.display = 'none';
+  };
+
+  window.handleUploadFile = function(input) {
+    var infoEl  = document.getElementById('upload-panel-info');
+    var errEl   = document.getElementById('upload-panel-error');
+    var btn     = document.getElementById('upload-confirm-btn');
+    infoEl.style.display = 'none';
+    errEl.style.display  = 'none';
+    _uploadParsed = null;
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    var file = input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var parsed = JSON.parse(e.target.result);
+        if (!Array.isArray(parsed)) throw new Error('الملف يجب أن يكون مصفوفة JSON');
+        if (parsed.length === 0) throw new Error('المصفوفة فارغة');
+        _uploadParsed = parsed;
+        infoEl.innerHTML = '✅ تم قراءة الملف — <strong>' + parsed.length + '</strong> عقار جاهز للرفع';
+        infoEl.style.display = 'block';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } catch(err) {
+        errEl.textContent = '❌ خطأ في الملف: ' + err.message;
+        errEl.style.display = 'block';
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  };
+
+  window.confirmUpload = async function() {
+    if (!_uploadParsed) return;
+    var btn    = document.getElementById('upload-confirm-btn');
+    var infoEl = document.getElementById('upload-panel-info');
+    var errEl  = document.getElementById('upload-panel-error');
+    var toast  = window.showToast || console.log;
+    btn.disabled = true;
+    btn.textContent = '⏳ جارٍ الرفع...';
+    btn.style.opacity = '.7';
+    try {
+      await sbSaveAll(_uploadParsed);
+      window.data     = _uploadParsed;
+      window.filtered = [..._uploadParsed];
+      if (window.applyFilter) window.applyFilter();
+      if (window.renderStats) window.renderStats();
+      var countEl = document.getElementById('total-count');
+      if (countEl) countEl.textContent = _uploadParsed.length;
+      infoEl.innerHTML = '✅ تم رفع <strong>' + _uploadParsed.length + '</strong> عقار إلى Supabase بنجاح!';
+      infoEl.style.display = 'block';
+      toast('✅ تم رفع ' + _uploadParsed.length + ' ملك إلى قاعدة البيانات');
+      btn.textContent = '✅ تم الرفع';
+      setTimeout(function() { window.closeUploadPanel(); }, 1800);
+    } catch(err) {
+      errEl.textContent = '❌ فشل الرفع: ' + err.message;
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '📤 رفع إلى Supabase';
+      btn.style.opacity = '1';
+      console.error('Upload error:', err);
+    }
+  };
+</script>
+
 </body>
 </html>
