@@ -2745,6 +2745,68 @@ window.saveHawzModal = function() {
 // ═══════════════════════════════════════════
 //  AUTH SYSTEM
 // ═══════════════════════════════════════════
+<script>
+// ── Supabase + Drive config (global scope) ──
+// ── Drive JSON import key ─────────────────
+const DRIVE_KEY = 'amlak_sfax_drive_url';
+
+// ── Supabase config ───────────────────────
+// Table structure (run once in Supabase SQL Editor):
+// create table amlak (id integer primary key default 1, data jsonb not null);
+// alter table amlak enable row level security;
+// create policy "public" on amlak for all using (true) with check (true);
+const SB_URL   = 'https://igizceqbausodppurnla.supabase.co';
+const SB_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnaXpjZXFiYXVzb2RwcHVybmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTcxOTAsImV4cCI6MjA5NjgzMzE5MH0.4OOcC70AOESL9G6m5BJtt7ukHWHj3zoZj29xUPzJGSY';
+const SB_TABLE = 'amlak';
+const SB_HDRS  = {
+  'Content-Type':  'application/json',
+  'apikey':        SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY
+};
+
+// Load the single row {id:1, data:[...]}
+async function sbLoadAll() {
+  const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.1&select=data', {
+    headers: SB_HDRS
+  });
+  if (!res.ok) throw new Error('Supabase GET → ' + res.status + ': ' + await res.text());
+  const rows = await res.json();
+  // rows = [] means table exists but no row yet
+  if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
+  const d = rows[0].data;
+  // data field could be null or empty array
+  if (!d || !Array.isArray(d) || d.length === 0) return null;
+  return d;
+}
+
+// Save entire dataset as one row (upsert id=1)
+async function sbSaveAll(arr) {
+  const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?on_conflict=id', {
+    method:  'POST',
+    headers: { ...SB_HDRS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body:    JSON.stringify({ id: 1, data: arr })
+  });
+  if (!res.ok) throw new Error('Supabase POST → ' + res.status + ': ' + await res.text());
+}
+
+// Upsert one property: update the array in place then save
+async function sbUpsert(prop) {
+  const arr = [...window.data];
+  await sbSaveAll(arr);
+}
+
+// Delete one property: remove from array then save
+async function sbDelete(num) {
+  const arr = window.data.filter(d => d.num !== num);
+  await sbSaveAll(arr);
+}
+
+// Replace entire dataset
+async function sbReplaceAll(rows) {
+  await sbSaveAll(rows);
+}
+</script>
+
 (function() {
   const ADMIN_EMAIL    = 'suivi.biens.conseilsfax@outlook.fr';
   const ADMIN_PASSWORD = 'sfax2026';
@@ -2788,65 +2850,6 @@ window.saveHawzModal = function() {
     document.getElementById('req-success').style.display = 'none';
     document.getElementById('req-error').style.display = 'none';
   };
-
-  // ── Drive JSON import key ─────────────────
-  const DRIVE_KEY = 'amlak_sfax_drive_url';
-
-  // ── Supabase config ───────────────────────
-  // Table structure (run once in Supabase SQL Editor):
-  // create table amlak (id integer primary key default 1, data jsonb not null);
-  // alter table amlak enable row level security;
-  // create policy "public" on amlak for all using (true) with check (true);
-  const SB_URL   = 'https://igizceqbausodppurnla.supabase.co';
-  const SB_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnaXpjZXFiYXVzb2RwcHVybmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTcxOTAsImV4cCI6MjA5NjgzMzE5MH0.4OOcC70AOESL9G6m5BJtt7ukHWHj3zoZj29xUPzJGSY';
-  const SB_TABLE = 'amlak';
-  const SB_HDRS  = {
-    'Content-Type':  'application/json',
-    'apikey':        SB_KEY,
-    'Authorization': 'Bearer ' + SB_KEY
-  };
-
-  // Load the single row {id:1, data:[...]}
-  async function sbLoadAll() {
-    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.1&select=data', {
-      headers: SB_HDRS
-    });
-    if (!res.ok) throw new Error('Supabase GET → ' + res.status + ': ' + await res.text());
-    const rows = await res.json();
-    // rows = [] means table exists but no row yet
-    if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
-    const d = rows[0].data;
-    // data field could be null or empty array
-    if (!d || !Array.isArray(d) || d.length === 0) return null;
-    return d;
-  }
-
-  // Save entire dataset as one row (upsert id=1)
-  async function sbSaveAll(arr) {
-    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?on_conflict=id', {
-      method:  'POST',
-      headers: { ...SB_HDRS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body:    JSON.stringify({ id: 1, data: arr })
-    });
-    if (!res.ok) throw new Error('Supabase POST → ' + res.status + ': ' + await res.text());
-  }
-
-  // Upsert one property: update the array in place then save
-  async function sbUpsert(prop) {
-    const arr = [...window.data];
-    await sbSaveAll(arr);
-  }
-
-  // Delete one property: remove from array then save
-  async function sbDelete(num) {
-    const arr = window.data.filter(d => d.num !== num);
-    await sbSaveAll(arr);
-  }
-
-  // Replace entire dataset
-  async function sbReplaceAll(rows) {
-    await sbSaveAll(rows);
-  }
 
   // Show/hide Drive field when admin email is typed
   document.addEventListener('DOMContentLoaded', function() {
