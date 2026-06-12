@@ -1257,7 +1257,8 @@ let data = RAW.map(d=>({...d,
   title_num: (d.title_num==='ــ'||d.title_num==='-'||d.title_num==='nan')?'':d.title_num,
   origin: d.origin.replace('عقد بيع مؤرخ في','').trim()
 }));
-window.data = data; // expose to global scope for Supabase sync
+window.data = data;
+window.RAW = RAW;
 
 let filtered = [...data];
 window.filtered = filtered;
@@ -3035,13 +3036,14 @@ window.saveHawzModal = function() {
           toast('✅ تم تحميل ' + rows.length + ' ملك من قاعدة البيانات');
         } else {
           // First run — push embedded RAW data to Supabase
-          toast('📤 أول تشغيل: جارٍ رفع ' + window.data.length + ' ملك...');
-          await sbSaveAll(window.data);
-          toast('✅ تم رفع ' + window.data.length + ' ملك إلى قاعدة البيانات');
+          const localData = window.data || (typeof data !== 'undefined' ? data : RAW);
+          toast('📤 أول تشغيل: جارٍ رفع ' + localData.length + ' ملك...');
+          await sbSaveAll(localData);
+          toast('✅ تم رفع ' + localData.length + ' ملك إلى قاعدة البيانات');
           if (window.applyFilter) window.applyFilter();
           if (window.renderStats) window.renderStats();
           const countEl = document.getElementById('total-count');
-          if (countEl) countEl.textContent = window.data.length;
+          if (countEl) countEl.textContent = localData.length;
         }
       } catch(err) {
         toast('⚠️ تعذّر الاتصال بقاعدة البيانات: ' + err.message);
