@@ -2810,8 +2810,12 @@ window.saveHawzModal = function() {
     });
     if (!res.ok) throw new Error('Supabase GET → ' + res.status + ': ' + await res.text());
     const rows = await res.json();
-    if (!rows || rows.length === 0) return null;
-    return rows[0].data; // returns the array directly
+    // rows = [] means table exists but no row yet
+    if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
+    const d = rows[0].data;
+    // data field could be null or empty array
+    if (!d || !Array.isArray(d) || d.length === 0) return null;
+    return d;
   }
 
   // Save entire dataset as one row (upsert id=1)
@@ -3018,6 +3022,7 @@ window.saveHawzModal = function() {
       try {
         toast('⏳ جارٍ تحميل البيانات من قاعدة البيانات...');
         const rows = await sbLoadAll();
+        console.log('Supabase sbLoadAll result:', rows ? rows.length + ' rows' : 'null');
         if (rows && Array.isArray(rows) && rows.length > 0) {
           window.data = rows;
           window.filtered = [...rows];
