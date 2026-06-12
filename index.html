@@ -1257,8 +1257,10 @@ let data = RAW.map(d=>({...d,
   title_num: (d.title_num==='ــ'||d.title_num==='-'||d.title_num==='nan')?'':d.title_num,
   origin: d.origin.replace('عقد بيع مؤرخ في','').trim()
 }));
+window.data = data; // expose to global scope for Supabase sync
 
 let filtered = [...data];
+window.filtered = filtered;
 let curPage = 1;
 const PER = 99999; // afficher tout sur une seule page
 let curView = 'table';
