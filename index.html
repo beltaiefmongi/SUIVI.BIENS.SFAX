@@ -2790,61 +2790,55 @@ window.saveHawzModal = function() {
   const DRIVE_KEY = 'amlak_sfax_drive_url';
 
   // ── Supabase config ───────────────────────
-  const SB_URL    = 'https://igizceqbausodppurnla.supabase.co';
-  const SB_KEY    = 'sb_publishable_b8pSLuCgbPYyggusiJlV6A_Yc3YRHT2';
-  const SB_TABLE  = 'properties';
+  // Table structure (run once in Supabase SQL Editor):
+  // create table amlak (id integer primary key default 1, data jsonb not null);
+  // alter table amlak enable row level security;
+  // create policy "public" on amlak for all using (true) with check (true);
+  const SB_URL   = 'https://igizceqbausodppurnla.supabase.co';
+  const SB_KEY   = 'sb_publishable_b8pSLuCgbPYyggusiJlV6A_Yc3YRHT2';
+  const SB_TABLE = 'amlak';
+  const SB_HDRS  = {
+    'Content-Type':  'application/json',
+    'apikey':        SB_KEY,
+    'Authorization': 'Bearer ' + SB_KEY
+  };
 
-  // Supabase helpers
-  async function sbFetch(method, body) {
-    const opts = {
-      method,
-      headers: {
-        'Content-Type':  'application/json',
-        'apikey':        SB_KEY,
-        'Authorization': 'Bearer ' + SB_KEY,
-        'Prefer':        method === 'POST' ? 'resolution=merge-duplicates,return=minimal' : 'return=minimal'
-      }
-    };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + (method === 'GET' ? '?select=*&order=num.asc&limit=5000' : '?on_conflict=num'), opts);
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error('Supabase ' + method + ' → ' + res.status + ': ' + err);
-    }
-    return method === 'GET' ? res.json() : res;
-  }
-
-  // Load all rows from Supabase
+  // Load the single row {id:1, data:[...]}
   async function sbLoadAll() {
-    return sbFetch('GET');
+    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.1&select=data', {
+      headers: SB_HDRS
+    });
+    if (!res.ok) throw new Error('Supabase GET → ' + res.status + ': ' + await res.text());
+    const rows = await res.json();
+    if (!rows || rows.length === 0) return null;
+    return rows[0].data; // returns the array directly
   }
 
-  // Upsert one property (insert or update by num)
+  // Save entire dataset as one row (upsert id=1)
+  async function sbSaveAll(arr) {
+    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?on_conflict=id', {
+      method:  'POST',
+      headers: { ...SB_HDRS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body:    JSON.stringify({ id: 1, data: arr })
+    });
+    if (!res.ok) throw new Error('Supabase POST → ' + res.status + ': ' + await res.text());
+  }
+
+  // Upsert one property: update the array in place then save
   async function sbUpsert(prop) {
-    return sbFetch('POST', prop);
+    const arr = [...window.data];
+    await sbSaveAll(arr);
   }
 
-  // Delete one property by num
+  // Delete one property: remove from array then save
   async function sbDelete(num) {
-    const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?num=eq.' + num, {
-      method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
-    if (!res.ok) throw new Error('Supabase DELETE → ' + res.status);
+    const arr = window.data.filter(d => d.num !== num);
+    await sbSaveAll(arr);
   }
 
-  // Replace entire dataset (used on JSON import)
+  // Replace entire dataset
   async function sbReplaceAll(rows) {
-    // 1. Delete all
-    await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?num=gte.0', {
-      method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
-    });
-    // 2. Insert in batches of 200
-    const BATCH = 200;
-    for (let i = 0; i < rows.length; i += BATCH) {
-      await sbFetch('POST', rows.slice(i, i + BATCH));
-    }
+    await sbSaveAll(rows);
   }
 
   // Show/hide Drive field when admin email is typed
@@ -3024,7 +3018,7 @@ window.saveHawzModal = function() {
       try {
         toast('⏳ جارٍ تحميل البيانات من قاعدة البيانات...');
         const rows = await sbLoadAll();
-        if (rows && rows.length > 0) {
+        if (rows && Array.isArray(rows) && rows.length > 0) {
           window.data = rows;
           window.filtered = [...rows];
           if (window.applyFilter) window.applyFilter();
@@ -3033,10 +3027,14 @@ window.saveHawzModal = function() {
           if (countEl) countEl.textContent = rows.length;
           toast('✅ تم تحميل ' + rows.length + ' ملك من قاعدة البيانات');
         } else {
-          // No data in Supabase yet — push the embedded RAW data
-          toast('📤 أول تشغيل: جارٍ رفع البيانات الأولية...');
-          await sbReplaceAll(window.data);
+          // First run — push embedded RAW data to Supabase
+          toast('📤 أول تشغيل: جارٍ رفع ' + window.data.length + ' ملك...');
+          await sbSaveAll(window.data);
           toast('✅ تم رفع ' + window.data.length + ' ملك إلى قاعدة البيانات');
+          if (window.applyFilter) window.applyFilter();
+          if (window.renderStats) window.renderStats();
+          const countEl = document.getElementById('total-count');
+          if (countEl) countEl.textContent = window.data.length;
         }
       } catch(err) {
         toast('⚠️ تعذّر الاتصال بقاعدة البيانات: ' + err.message);
