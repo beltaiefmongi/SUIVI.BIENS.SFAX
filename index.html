@@ -707,6 +707,176 @@ tbody td {
 }
 .animate-in { animation: fadeIn 0.32s ease both; }
 #table-pag, #cards-pag { display: none !important; }
+
+/* ══════════════════════════════════════
+   RESPONSIVE MOBILE
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* HEADER */
+  .header-inner {
+    padding: 10px 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .header-logo { width: 48px; height: 48px; }
+  .header-title h1 { font-size: 14px; }
+  .header-title p { font-size: 11px; }
+  .header-counter { padding: 6px 12px; }
+  .header-counter .num { font-size: 22px; }
+  .header-counter .lbl { font-size: 10px; }
+
+  /* USER BADGE — wrap on small screens */
+  #user-badge {
+    font-size: 11px !important;
+    flex-wrap: wrap;
+    gap: 4px !important;
+    padding: 4px 8px !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* NAV TABS — scrollable horizontal */
+  .nav-tabs {
+    padding: 0 8px;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    padding: 9px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* MAIN */
+  .main { padding: 12px 10px; }
+
+  /* FILTER BAR */
+  .filter-bar {
+    padding: 12px;
+    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap { flex: unset; width: 100%; }
+  .filter-select { min-width: unset; flex: unset; width: 100%; font-size: 13px; }
+  .clear-btn { width: 100%; text-align: center; }
+  .result-count { text-align: center; }
+
+  /* TABLE — card-style on mobile */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 700px; font-size: 12px; }
+  thead th { padding: 10px 10px; font-size: 11px; }
+  tbody td { padding: 8px 10px; }
+  .td-notes { max-width: 120px; }
+
+  /* CARDS GRID */
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* STATS */
+  .stats-grid { gap: 10px; }
+  .stat-card {
+    flex: 1 1 140px;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .stat-icon { font-size: 26px; }
+  .stat-num { font-size: 24px; }
+  .stat-label { font-size: 12px; }
+  .chart-section { padding: 16px; }
+  .chart-title { font-size: 15px; }
+
+  /* MODAL */
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    animation: slideUpMobile 0.28s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes slideUpMobile {
+    from { transform: translateY(100%); opacity: 0.5; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  .modal-header { padding: 16px 16px 12px; }
+  .modal-badge-num { width: 42px; height: 42px; font-size: 15px; }
+  .modal-num-val { font-size: 18px; }
+  .modal-body { padding: 14px 16px; }
+  .edit-form-grid { grid-template-columns: 1fr; gap: 10px; }
+  .edit-field.full { grid-column: unset; }
+  .modal-footer { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .modal-footer button { flex: 1 1 120px; font-size: 13px; padding: 10px; }
+
+  /* DRIVE INPUT */
+  .drive-input-wrap { flex-direction: column; align-items: stretch; }
+  .btn-drive-open { width: 100%; justify-content: center; }
+
+  /* AUTH OVERLAY */
+  .auth-card {
+    margin: 12px;
+    padding: 24px 18px !important;
+    border-radius: 18px !important;
+  }
+
+  /* PANELS (upload, drive, admin) */
+  #upload-panel > div,
+  #drive-link-panel > div {
+    width: 95vw !important;
+    margin: auto;
+    border-radius: 16px !important;
+  }
+
+  /* MAP */
+  #panel-mapview { height: calc(100vh - 140px); }
+  #properties-map { height: 100% !important; }
+
+  /* FINANCE */
+  .finance-summary { gap: 10px; padding: 14px 16px; }
+  .finance-kpi { min-width: 130px; padding: 12px 14px !important; }
+
+  /* TOAST */
+  #toast {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 16px !important;
+    min-width: unset !important;
+    max-width: unset !important;
+    text-align: center;
+    font-size: 13px !important;
+  }
+
+  /* RENTAL MODAL */
+  #rental-modal > div {
+    width: 98vw !important;
+    margin: auto;
+  }
+
+  /* Add to map button etc inside modals */
+  .modal-footer .btn-add,
+  .modal-footer .btn-del,
+  .modal-footer .btn-save {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title h1 { font-size: 13px; }
+  .header-logo { width: 40px; height: 40px; }
+  .nav-tab { padding: 8px 10px; font-size: 11px; }
+  .stat-card { flex: 1 1 100%; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .prop-card .card-loc { font-size: 14px; }
+  .modal-num-val { font-size: 16px; }
+}
 </style>
 </style>
 
@@ -1023,7 +1193,7 @@ tbody td {
         <div style="font-weight:800;font-size:16px;color:var(--navy)">🗺️ خريطة الأملاك</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-right:auto;" id="map-legend"></div>
       </div>
-      <div id="properties-map" style="height:600px;width:100%;"></div>
+      <div id="properties-map" style="height:600px;width:100%;height:clamp(350px,60vh,600px);"></div>
     </div>
   </div>
   <!-- ══ PANEL: الوضعية المالية والقانونية ══ -->
