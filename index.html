@@ -2826,7 +2826,7 @@ window.saveHawzModal = function() {
   }
 
   // Save entire dataset as one row (upsert id=1)
-  async function sbSaveAll(arr) {
+  window.sbSaveAll = async function sbSaveAll(arr) {
     const res = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?on_conflict=id', {
       method:  'POST',
       headers: { ...SB_HDRS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
@@ -2836,20 +2836,20 @@ window.saveHawzModal = function() {
   }
 
   // Upsert one property: update the array in place then save
-  async function sbUpsert(prop) {
+  window.sbUpsert = async function(prop) {
     const arr = [...window.data];
-    await sbSaveAll(arr);
+    await window.sbSaveAll(arr);
   }
 
   // Delete one property: remove from array then save
-  async function sbDelete(num) {
+  window.sbDelete = async function(num) {
     const arr = window.data.filter(d => d.num !== num);
-    await sbSaveAll(arr);
+    await window.sbSaveAll(arr);
   }
 
   // Replace entire dataset
-  async function sbReplaceAll(rows) {
-    await sbSaveAll(rows);
+  window.sbReplaceAll = async function(rows) {
+    await window.sbSaveAll(rows);
   }
 
   // Show/hide Drive field when admin email is typed
