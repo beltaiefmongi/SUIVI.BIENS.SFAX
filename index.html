@@ -1758,10 +1758,14 @@ window.openAddModal = function() {
     bayan: '', usage: '', nature: '', legal_status: '', delegation: '', title_num: '',
     origin: '', notes: '', lat: '', lng: '', rental: null };
   data.push(newProp);
+  // ── تزامن window.data ──
+  window.data = data;
   applyFilter();
 
   // Sync new property to Supabase
-  sbUpsert(newProp).catch(function(err) { console.error('Supabase new prop error:', err); });
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) { console.error('Supabase new prop error:', err); });
+  }
 
   // Open the modal on this new entry
   openModal(newNum);
@@ -1871,6 +1875,9 @@ window.saveProperty = function() {
   const lng = parseFloat(document.getElementById('ef-lng').value);
   if (lat && lng) { data[idx].lat = lat; data[idx].lng = lng; }
 
+  // ── تزامن window.data مع data المحلي ──
+  window.data = data;
+
   applyFilter();
 
   const rows = document.querySelectorAll('#table-body tr');
@@ -1885,6 +1892,14 @@ window.saveProperty = function() {
   document.getElementById('total-count').textContent = data.length;
   renderStats();
   showToast('✅ تم حفظ بيانات العقار #' + currentEditNum + ' بنجاح');
+
+  // ── حفظ في Supabase بعد تحديث window.data ──
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      showToast('⚠️ تعذّر الحفظ في قاعدة البيانات: ' + err.message);
+      console.error('Supabase save error:', err);
+    });
+  }
 };
 
 function showToast(msg) {
@@ -2017,19 +2032,6 @@ const _origSave = window.saveProperty;
 window.saveProperty = function() {
   _origSave();
   if (propertiesMap) renderPropertiesMap();
-  // Sync to Supabase
-  const modal = document.getElementById('edit-modal');
-  const numEl = document.getElementById('ef-num');
-  if (numEl) {
-    const num = parseInt(numEl.value);
-    const prop = window.data.find(d => d.num === num);
-    if (prop) {
-      sbUpsert(prop).catch(function(err) {
-        showToast && showToast('⚠️ تعذّر الحفظ في قاعدة البيانات: ' + err.message);
-        console.error('Supabase upsert error:', err);
-      });
-    }
-  }
 };
 
 // ── Export / Import ──────────────────────────────────────────
@@ -2139,13 +2141,17 @@ window.deleteProperty = function(num) {
   if (!confirm('هل تريد حذف ' + label + ' نهائياً؟')) return;
   const idx = data.findIndex(d => d.num === num);
   if (idx !== -1) { data.splice(idx, 1); }
+  // ── تزامن window.data ──
+  window.data = data;
   applyFilter();
   showToast('🗑️ تم حذف البيان بنجاح');
   // Sync to Supabase
-  sbDelete(num).catch(function(err) {
-    showToast && showToast('⚠️ تعذّر الحذف من قاعدة البيانات: ' + err.message);
-    console.error('Supabase delete error:', err);
-  });
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      showToast && showToast('⚠️ تعذّر الحذف من قاعدة البيانات: ' + err.message);
+      console.error('Supabase delete error:', err);
+    });
+  }
 };
 
 // ══════════════════════════════════════════════════════════
