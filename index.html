@@ -1574,8 +1574,8 @@ function renderCards(){
 
 function renderStats(){
   const total = data.length;
-  const built = data.filter(p=>p.type.includes('عقار')).length;
-  const land = data.filter(p=>p.type.includes('أرض')).length;
+  const built = data.filter(p=>(p.type||'').includes('عقار')).length;
+  const land = data.filter(p=>(p.type||'').includes('أرض')).length;
   const titled = data.filter(p=>p.title_num).length;
   document.getElementById('stats-grid').innerHTML = [
     ['🏛️','إجمالي الأملاك',total,'#0d2b4e'],
@@ -3210,10 +3210,10 @@ window.saveHawzModal = function() {
         if (rows && Array.isArray(rows) && rows.length > 0) {
           window.data = rows;
           window.filtered = [...rows];
-          if (window.applyFilter) window.applyFilter(); // سيُزامن data المحلي أيضاً
-          if (window.renderStats) window.renderStats();
           const countEl = document.getElementById('total-count');
           if (countEl) countEl.textContent = rows.length;
+          if (window.applyFilter) window.applyFilter(); // سيُزامن data المحلي أيضاً
+          if (window.renderStats) window.renderStats();
           toast('✅ تم تحميل ' + rows.length + ' ملك من قاعدة البيانات');
         } else {
           // First run — push embedded RAW data to Supabase
