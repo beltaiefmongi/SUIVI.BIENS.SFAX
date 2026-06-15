@@ -2099,7 +2099,103 @@ window.exportPDF = function() {
   showToast('📄 جاري فتح نافذة الطباعة...');
 };
 
-// Import JSON
+// طباعة التقرير المالي والقانوني الكامل
+window.printFinanceReport = function() {
+  const root = document.getElementById('finance-report-root');
+  if (!root) { showToast('⚠️ لا يوجد تقرير لطباعته'); return; }
+
+  const clone = root.cloneNode(true);
+  clone.querySelectorAll('.no-print, select, button').forEach(el => el.remove());
+
+  const styles = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+      * { box-sizing: border-box; }
+      body { font-family:'Cairo',sans-serif; direction:rtl; margin:14mm; color:#222; }
+      h1 { text-align:center; color:#0d2b4e; font-size:20px; margin:0 0 4px; }
+      p.sub { text-align:center; color:#555; font-size:12px; margin:0 0 18px; }
+      .finance-header { background:linear-gradient(135deg,#0d2b4e,#1a5276); color:#fff; padding:14px 18px; border-radius:10px 10px 0 0; }
+      .finance-header h2 { margin:0; font-size:16px; }
+      .finance-summary { display:flex; gap:12px; padding:14px; background:#f8fafc; border-bottom:1px solid #e8edf5; flex-wrap:wrap; }
+      .finance-kpi { flex:1; min-width:140px; background:#fff; border:1px solid #e3e8ef; border-radius:9px; padding:10px 14px; border-top:3px solid var(--kpi-color,#1a5276); }
+      .kpi-label { font-size:11px; color:#666; margin-bottom:4px; }
+      .kpi-value { font-size:16px; font-weight:800; }
+      .finance-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; padding:14px; }
+      .fiche-card { border:1.5px solid #e3e8ef; border-radius:10px; overflow:hidden; page-break-inside: avoid; }
+      .fiche-card.overdue-card { border-color:#dc2626; }
+      .fiche-card-header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#f4f6f9; border-bottom:1px solid #e3e8ef; }
+      .fiche-card.overdue-card .fiche-card-header { background:#fef2f2; }
+      .fiche-num { font-weight:800; font-size:14px; color:#0d2b4e; }
+      .fiche-type { font-size:11px; color:#666; }
+      .overdue-pill { font-size:10px; color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:10px; }
+      .fiche-body { padding:10px 14px; }
+      .fiche-row { display:flex; justify-content:space-between; font-size:12px; padding:3px 0; }
+      .flabel { color:#666; }
+      .fval { font-weight:700; color:#0d2b4e; }
+      .fiche-divider { border:none; border-top:1px dashed #ddd; margin:6px 0; }
+      .fiche-balance-row .fval { color:#dc2626; }
+      .fiche-balance-ok .fval { color:#1a6b3c; }
+      @page { size: A4; margin: 10mm; }
+      @media print { .finance-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+  `;
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">${styles}
+    <title>التقرير المالي والقانوني - أملاك المجلس الجهوي صفاقس</title></head><body>
+    <h1>التقرير المالي والقانوني للأملاك المسوّغة</h1>
+    <p class="sub">المجلس الجهوي بصفاقس — تاريخ الطباعة: ${new Date().toLocaleDateString('ar-TN')}</p>
+    ${clone.outerHTML}
+    <scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>
+  </body></html>`);
+  win.document.close();
+  showToast('📄 جاري فتح نافذة طباعة التقرير الكامل...');
+};
+
+// طباعة فيشة ملك واحد
+window.printFicheCard = function(num) {
+  const card = document.getElementById('fiche-card-' + num);
+  if (!card) { showToast('⚠️ لم يتم العثور على الفيشة'); return; }
+
+  const clone = card.cloneNode(true);
+  clone.querySelectorAll('.no-print, select, button').forEach(el => el.remove());
+
+  const styles = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+      * { box-sizing: border-box; }
+      body { font-family:'Cairo',sans-serif; direction:rtl; margin:14mm; color:#222; }
+      h1 { text-align:center; color:#0d2b4e; font-size:20px; margin:0 0 4px; }
+      p.sub { text-align:center; color:#555; font-size:12px; margin:0 0 18px; }
+      .fiche-card { border:1.5px solid #e3e8ef; border-radius:10px; overflow:hidden; }
+      .fiche-card.overdue-card { border-color:#dc2626; }
+      .fiche-card-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#f4f6f9; border-bottom:1px solid #e3e8ef; }
+      .fiche-card.overdue-card .fiche-card-header { background:#fef2f2; }
+      .fiche-num { font-weight:800; font-size:16px; color:#0d2b4e; }
+      .fiche-type { font-size:12px; color:#666; }
+      .overdue-pill { font-size:11px; color:#dc2626; font-weight:800; background:#fee2e2; padding:2px 8px; border-radius:10px; }
+      .fiche-body { padding:14px 16px; }
+      .fiche-row { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; }
+      .flabel { color:#666; }
+      .fval { font-weight:700; color:#0d2b4e; }
+      .fiche-divider { border:none; border-top:1px dashed #ddd; margin:8px 0; }
+      .fiche-balance-row .fval { color:#dc2626; }
+      .fiche-balance-ok .fval { color:#1a6b3c; }
+      @page { size: A4; margin: 10mm; }
+    </style>
+  `;
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">${styles}
+    <title>فيشة ملك رقم ${num}</title></head><body>
+    <h1>فيشة الوضعية المالية والقانونية</h1>
+    <p class="sub">المجلس الجهوي بصفاقس — تاريخ الطباعة: ${new Date().toLocaleDateString('ar-TN')}</p>
+    ${clone.outerHTML}
+    <scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt>
+  </body></html>`);
+  win.document.close();
+  showToast('📄 جاري فتح نافذة طباعة الفيشة...');
+};
 window.importJSON = function(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -3469,6 +3565,8 @@ window.saveHawzModal = function() {
   border-radius: var(--radius) var(--radius) 0 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 14px;
 }
 .finance-header h2 { margin:0; font-size:18px; font-weight:800; }
@@ -3644,7 +3742,7 @@ window.renderFinance = function() {
       </div>` : '';
 
     return `
-    <div class="fiche-card ${isOverdue ? 'overdue-card' : ''}">
+    <div class="fiche-card ${isOverdue ? 'overdue-card' : ''}" id="fiche-card-${p.num}">
       <div class="fiche-card-header">
         <div>
           <div class="fiche-num">رقم ${p.num}</div>
@@ -3654,7 +3752,13 @@ window.renderFinance = function() {
           ${isOverdue
             ? '<span class="overdue-pill">⚠️ لم يتم دفع المعلوم</span>'
             : '<span style="font-size:11px;color:#27ae60;font-weight:700">✅ عادي</span>'}
-          <button onclick="openModal(${p.num})" title="فتح فيشة الملك للتعديل" style="
+          <button onclick="printFicheCard(${p.num})" title="طباعة هذه الفيشة" class="no-print" style="
+            background:#fff;color:#1a5276;border:1.5px solid #1a5276;border-radius:8px;
+            padding:5px 9px;font-size:11px;font-weight:800;
+            font-family:inherit;cursor:pointer;white-space:nowrap;
+            transition:opacity .15s
+          " onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">🖨️ طباعة</button>
+          <button onclick="openModal(${p.num})" title="فتح فيشة الملك للتعديل" class="no-print" style="
             background:linear-gradient(135deg,#1a5276,#2980b9);
             color:#fff;border:none;border-radius:8px;
             padding:5px 11px;font-size:11px;font-weight:800;
@@ -3676,7 +3780,7 @@ window.renderFinance = function() {
         ${tanbeehHistory}
         ${caseSection}
       </div>
-      <div class="fiche-action-wrap">
+      <div class="fiche-action-wrap no-print">
         <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <button onclick="openTanbeehModal(${p.num})" style="
             flex:1;padding:8px 12px;border-radius:9px;border:1.5px solid #7c3aed;
@@ -3687,12 +3791,13 @@ window.renderFinance = function() {
           " ${!canAddTanbeeh?'disabled':''}>📢 إضافة تنبيه (${tanbeehCount}/3)</button>
         </div>
         <div class="fiche-action-label">📋 الإجراء المعتمد</div>
-        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)">
+        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)" onmousedown="this.dataset.prevValue=this.value">
           <option value=""                   ${savedAction===''?'selected':''}>— اختر الإجراء —</option>
           <option value="التنبيه على المتسوغ" ${savedAction==='التنبيه على المتسوغ'?'selected':''}>📢 التنبيه على المتسوغ</option>
           <option value="الحفظ والمتابعة"    ${savedAction==='الحفظ والمتابعة'?'selected':''}>📁 الحفظ والمتابعة</option>
           <option value="رفع قضية استعجالية" ${savedAction==='رفع قضية استعجالية'?'selected':''}>⚖️ رفع قضية استعجالية</option>
         </select>
+        ${savedAction === 'رفع قضية استعجالية' ? `<button onclick="openCaseModal(${p.num})" style="margin-top:6px;width:100%;padding:7px 10px;border-radius:8px;background:#f59e0b;color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">✏️ تعديل بيانات القضية الاستعجالية</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -3704,7 +3809,7 @@ window.renderFinance = function() {
   }).length;
 
   container.innerHTML = `
-  <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--card-shadow);overflow:hidden;">
+  <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--card-shadow);overflow:hidden;" id="finance-report-root">
     <div class="finance-header">
       <div>
         <h2 style="margin:0 0 4px">💰 الوضعية المالية والقانونية للأملاك</h2>
@@ -3714,6 +3819,13 @@ window.renderFinance = function() {
             : '<span style="color:#a7f3d0;font-weight:800">✅ الوضعية سليمة</span>'}
         </div>
       </div>
+      <button onclick="printFinanceReport()" class="no-print" style="
+        background:#fff;color:#1a5276;border:none;border-radius:9px;
+        padding:9px 18px;font-size:13px;font-weight:800;
+        font-family:inherit;cursor:pointer;white-space:nowrap;
+        box-shadow:0 2px 8px rgba(0,0,0,.15);
+        transition:opacity .15s
+      " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🖨️ طباعة التقرير الكامل</button>
     </div>
     <div class="finance-summary">
       <div class="finance-kpi" style="--kpi-color:#1a5276">
@@ -3738,6 +3850,13 @@ window.saveFinanceAction = function(num, value) {
   if (idx === -1) return;
   if (!data[idx].rental) data[idx].rental = {};
   data[idx].rental.action_decision = value;
+  // ── تزامن window.data ──
+  window.data = data;
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      console.error('Supabase save error (action_decision):', err);
+    });
+  }
   if (value === 'التنبيه على المتسوغ') {
     const list = data[idx].rental.tanbeeh_list || [];
     if (list.length >= 3) {
@@ -4020,10 +4139,19 @@ window.saveCaseModal = function() {
     defendant: document.getElementById('cm-defendant').value.trim(),
     lawyer:    document.getElementById('cm-lawyer').value.trim(),
     file_date: document.getElementById('cm-file-date').value,
-    outcome:   document.getElementById('cm-outcome').value.trim()
+    outcome:   document.getElementById('cm-outcome').value
   };
+  // ── تزامن window.data ──
+  window.data = data;
   showToast('✅ تم حفظ بيانات القضية');
   closeCaseModal();
+  // Sync to Supabase
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      showToast('⚠️ تعذّر الحفظ في قاعدة البيانات: ' + err.message);
+      console.error('Supabase save error (case data):', err);
+    });
+  }
 };
 </script>
 <div id="case-modal">
