@@ -1162,6 +1162,7 @@ tbody td {
               <th>المستفيد</th>
               <th>الملاحظات</th>
               <th style="text-align:center">حذف</th>
+              <th style="text-align:center">طباعة</th>
             </tr>
           </thead>
           <tbody id="table-body"></tbody>
@@ -1548,6 +1549,9 @@ function renderTable(){
       <td style="text-align:center" onclick="event.stopPropagation()">
         <button onclick="deleteProperty(${p.num})" style="background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5;padding:4px 11px;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;transition:all .2s" onmouseover="this.style.background='#dc2626';this.style.color='#fff'" onmouseout="this.style.background='#fee2e2';this.style.color='#dc2626'">🗑 حذف</button>
       </td>
+      <td style="text-align:center" onclick="event.stopPropagation()">
+        <button onclick="printPropertySheet(${p.num})" style="background:#e8f4fd;color:#1a5276;border:1.5px solid #aed6f1;padding:4px 11px;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;transition:all .2s" onmouseover="this.style.background='#1a5276';this.style.color='#fff'" onmouseout="this.style.background='#e8f4fd';this.style.color='#1a5276'">🖨 طباعة</button>
+      </td>
     </tr>`;
   }).join('');
   makePag('table-pag', filtered.length, 'gotoTablePage');
@@ -1566,6 +1570,9 @@ function renderCards(){
         ${p.area?`<div class="card-row">📐 ${p.area}</div>`:''}
         ${p.usage?`<div class="card-row">🏷️ ${p.usage}</div>`:''}
         ${p.title_num?`<div class="card-title-num">رسم عقاري: <span>${p.title_num}</span></div>`:''}
+        <div style="margin-top:10px;text-align:left" onclick="event.stopPropagation()">
+          <button onclick="printPropertySheet(${p.num})" style="background:#e8f4fd;color:#1a5276;border:1.5px solid #aed6f1;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;transition:all .2s;width:100%" onmouseover="this.style.background='#1a5276';this.style.color='#fff'" onmouseout="this.style.background='#e8f4fd';this.style.color='#1a5276'">🖨 طباعة الفيشة</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2360,6 +2367,220 @@ window.data        = data;
 window.filtered    = filtered;
 window.applyFilter = applyFilter;
 window.renderStats = renderStats;
+
+// ══════════════════════════════════════════════════════════
+// طباعة فيشة الملك الكاملة
+// ══════════════════════════════════════════════════════════
+window.printPropertySheet = function(num) {
+  const p = data.find(d => d.num === num);
+  if (!p) { showToast('⚠️ لم يتم العثور على الملك'); return; }
+
+  const r   = p.rental  || {};
+  const h   = p.hawz    || {};
+  const cas = (r && r.case_data) ? r.case_data : {};
+
+  const usageColor = {
+    'مسوغ':'#27ae60','غير مسوغ':'#1a5276','موضوع على الذمة':'#d4ac0d',
+    'حوز وتصرف من الخواص':'#e74c3c','شاغر':'#546e7a'
+  }[p.usage] || '#546e7a';
+
+  const lsColor = p.legal_status === 'مسجل' ? '#27ae60' : p.legal_status === 'غير مسجل' ? '#e74c3c' : '#888';
+
+  const row = (label, value, color) => value
+    ? `<tr><td class="lbl">${label}</td><td class="val" style="${color?'color:'+color+';font-weight:800':''}">${value}</td></tr>`
+    : '';
+
+  const sectionTitle = (icon, title, color) =>
+    `<tr><th colspan="2" class="section-head" style="background:${color||'#0d2b4e'}">${icon} ${title}</th></tr>`;
+
+  const rentalRows = r.beneficiary ? `
+    ${sectionTitle('📋','بيانات عقد التسويغ','#1a6b3c')}
+    ${row('المستفيد',           r.beneficiary)}
+    ${row('معلوم الكراء السنوي', r.annual_fee)}
+    ${row('إجمالي معلوم الكراء', r.total_fee)}
+    ${row('مدة العقد',           r.duration)}
+    ${row('تاريخ العقد',         r.contract_date)}
+    ${row('المبلغ المدفوع',       r.paid)}
+    ${row('المبلغ المطلوب',       r.required)}
+    ${row('المتخلد بالذمة',       r.balance, r.balance && parseFloat((r.balance||'').replace(/[^\d.]/g,''))>0?'#dc2626':'#1a6b3c')}
+  ` : '';
+
+  const hawzRows = h.occupant ? `
+    ${sectionTitle('⚠️','بيانات الحوز والتصرف','#c0392b')}
+    ${row('المتصرف',      h.occupant)}
+    ${row('الإجراء المتخذ', h.action)}
+    ${row('تاريخ الإجراء',  h.action_date)}
+  ` : '';
+
+  const caseRows = cas.case_num ? `
+    ${sectionTitle('⚖️','بيانات القضية الاستعجالية','#7d3c98')}
+    ${row('عدد القضية',          cas.case_num)}
+    ${row('الدائرة المتعهدة',     cas.court)}
+    ${row('موضوع القضية',        cas.subject)}
+    ${row('المدعي',              cas.plaintiff)}
+    ${row('المدعى عليه',         cas.defendant)}
+    ${row('المحامي',             cas.lawyer)}
+    ${row('تاريخ إرسال الملف',   cas.file_date)}
+    ${row('مآل القضية',          cas.outcome)}
+  ` : '';
+
+  const googleMapsUrl = (p.lat && p.lng)
+    ? `https://www.google.com/maps?q=${p.lat},${p.lng}`
+    : null;
+
+  const styles = `
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Cairo', sans-serif; direction: rtl; background: #f5f7fa; color: #1a1a2e; padding: 10mm; }
+
+      .sheet { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); max-width: 800px; margin: 0 auto; }
+
+      /* ── رأس الوثيقة ── */
+      .sheet-header {
+        background: linear-gradient(135deg, #0d2b4e 0%, #1a5276 60%, #1a7a6e 100%);
+        color: #fff; padding: 22px 28px; display: flex; align-items: center; gap: 18px;
+      }
+      .header-circle {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: rgba(255,255,255,.18); border: 3px solid rgba(212,172,13,.7);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px; flex-shrink: 0;
+      }
+      .header-text h1 { font-size: 18px; font-weight: 900; line-height: 1.2; }
+      .header-text p  { font-size: 12px; opacity: .8; margin-top: 3px; }
+      .header-num {
+        margin-right: auto; text-align: center;
+        background: rgba(255,255,255,.15); border: 2px solid rgba(212,172,13,.6);
+        border-radius: 10px; padding: 10px 20px;
+      }
+      .header-num .n  { font-size: 32px; font-weight: 900; color: #f9e79f; line-height: 1; }
+      .header-num .lb { font-size: 11px; opacity: .8; margin-top: 2px; }
+
+      /* ── شريط الوضعية ── */
+      .status-bar {
+        background: #f0f3f7; border-bottom: 2px solid #e0e6ef;
+        padding: 12px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      }
+      .badge-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700;
+        border: 2px solid;
+      }
+      .print-date { margin-right: auto; font-size: 12px; color: #666; }
+
+      /* ── جدول البيانات ── */
+      .data-section { padding: 18px 24px; }
+      table.data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      table.data-table .section-head {
+        color: #fff; font-size: 13px; font-weight: 800; padding: 9px 14px;
+        text-align: right; letter-spacing: .3px;
+      }
+      table.data-table td.lbl {
+        width: 42%; padding: 8px 14px; color: #555; font-weight: 600; font-size: 13px;
+        border-bottom: 1px solid #f0f3f7; vertical-align: top;
+      }
+      table.data-table td.val {
+        padding: 8px 14px; font-weight: 700; color: #0d2b4e; font-size: 13px;
+        border-bottom: 1px solid #f0f3f7;
+      }
+      table.data-table tr:last-child td { border-bottom: none; }
+
+      /* ── ذيل الوثيقة ── */
+      .sheet-footer {
+        background: #f8fafc; border-top: 2px solid #e0e6ef;
+        padding: 14px 24px; display: flex; justify-content: space-between;
+        align-items: center; font-size: 12px; color: #777;
+      }
+      .location-link { color: #1a5276; text-decoration: none; font-weight: 700; }
+
+      /* ── خط ترصيع ── */
+      .section-spacer { height: 10px; }
+
+      @page { size: A4; margin: 10mm; }
+      @media print {
+        body { padding: 0; background: #fff; }
+        .sheet { box-shadow: none; border-radius: 0; }
+      }
+    </style>
+  `;
+
+  const printDate = new Date().toLocaleDateString('ar-TN', {
+    year:'numeric', month:'long', day:'numeric'
+  });
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>فيشة الملك رقم ${p.num}</title>
+  ${styles}
+</head>
+<body>
+<div class="sheet">
+
+  <!-- رأس -->
+  <div class="sheet-header">
+    <div class="header-circle">🏛️</div>
+    <div class="header-text">
+      <h1>فيشة الملك — المجلس الجهوي بصفاقس</h1>
+      <p>Conseil Régional de Sfax — Fiche de bien immobilier</p>
+    </div>
+    <div class="header-num">
+      <div class="n">${p.num}</div>
+      <div class="lb">رقم البيان</div>
+    </div>
+  </div>
+
+  <!-- شريط الوضعية -->
+  <div class="status-bar">
+    ${p.type ? `<span class="badge-pill" style="color:#1a5276;background:#e8f4fd;border-color:#aed6f1">🏷️ ${p.type}</span>` : ''}
+    ${p.usage ? `<span class="badge-pill" style="color:${usageColor};background:${usageColor}15;border-color:${usageColor}55">⚡ ${p.usage}</span>` : ''}
+    ${p.legal_status ? `<span class="badge-pill" style="color:${lsColor};background:${lsColor}15;border-color:${lsColor}55">📜 ${p.legal_status}</span>` : ''}
+    <span class="print-date">📅 تاريخ الطباعة: ${printDate}</span>
+  </div>
+
+  <!-- البيانات -->
+  <div class="data-section">
+    <table class="data-table">
+      ${sectionTitle('📌','البيانات الأساسية','#0d2b4e')}
+      ${row('بيان الملك',         p.bayan        || '—')}
+      ${row('موقع الملك',         p.location     || '—')}
+      ${row('المساحة',            p.area         || '—')}
+      ${row('طبيعة الملك',        p.nature       || '—')}
+      ${row('المعتمدية',          p.delegation   || '—')}
+      ${row('الرسم العقاري',      p.title_num    || '—')}
+      ${row('الوضعية القانونية',  p.legal_status || '—')}
+      ${row('مصدر الملكية',       p.origin       || '—')}
+      ${p.lat && p.lng ? row('الإحداثيات (خط العرض/الطول)', `${p.lat}, ${p.lng}`) : ''}
+      ${row('ملاحظات',            p.notes        || '—')}
+
+      ${rentalRows ? `<tr><td colspan="2" class="section-spacer"></td></tr>` : ''}
+      ${rentalRows}
+
+      ${hawzRows ? `<tr><td colspan="2" class="section-spacer"></td></tr>` : ''}
+      ${hawzRows}
+
+      ${caseRows ? `<tr><td colspan="2" class="section-spacer"></td></tr>` : ''}
+      ${caseRows}
+    </table>
+  </div>
+
+  <!-- ذيل -->
+  <div class="sheet-footer">
+    <span>📋 فيشة الملك رقم ${p.num} — المجلس الجهوي بصفاقس</span>
+    ${googleMapsUrl ? `<a class="location-link" href="${googleMapsUrl}" target="_blank">📍 عرض على الخريطة</a>` : '<span></span>'}
+    <span>تم إنشاء الوثيقة بواسطة تطبيقة أملاك المجلس الجهوي</span>
+  </div>
+
+</div>
+<script>window.onload = function() { window.print(); }<\/script>
+</body>
+</html>`);
+  win.document.close();
+  showToast('🖨️ جارٍ فتح نافذة طباعة فيشة الملك رقم ' + num + '...');
+};
 </script>
 
 <!-- ══ RENTAL MODAL HTML ══ -->
