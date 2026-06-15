@@ -3687,13 +3687,12 @@ window.renderFinance = function() {
           " ${!canAddTanbeeh?'disabled':''}>📢 إضافة تنبيه (${tanbeehCount}/3)</button>
         </div>
         <div class="fiche-action-label">📋 الإجراء المعتمد</div>
-        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)" onmousedown="this.dataset.prevValue=this.value">
+        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)">
           <option value=""                   ${savedAction===''?'selected':''}>— اختر الإجراء —</option>
           <option value="التنبيه على المتسوغ" ${savedAction==='التنبيه على المتسوغ'?'selected':''}>📢 التنبيه على المتسوغ</option>
           <option value="الحفظ والمتابعة"    ${savedAction==='الحفظ والمتابعة'?'selected':''}>📁 الحفظ والمتابعة</option>
           <option value="رفع قضية استعجالية" ${savedAction==='رفع قضية استعجالية'?'selected':''}>⚖️ رفع قضية استعجالية</option>
         </select>
-        ${savedAction === 'رفع قضية استعجالية' ? `<button onclick="openCaseModal(${p.num})" style="margin-top:6px;width:100%;padding:7px 10px;border-radius:8px;background:#f59e0b;color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">✏️ تعديل بيانات القضية الاستعجالية</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -3739,13 +3738,6 @@ window.saveFinanceAction = function(num, value) {
   if (idx === -1) return;
   if (!data[idx].rental) data[idx].rental = {};
   data[idx].rental.action_decision = value;
-  // ── تزامن window.data ──
-  window.data = data;
-  if (window.sbSaveAll) {
-    window.sbSaveAll([...data]).catch(function(err) {
-      console.error('Supabase save error (action_decision):', err);
-    });
-  }
   if (value === 'التنبيه على المتسوغ') {
     const list = data[idx].rental.tanbeeh_list || [];
     if (list.length >= 3) {
@@ -4028,19 +4020,10 @@ window.saveCaseModal = function() {
     defendant: document.getElementById('cm-defendant').value.trim(),
     lawyer:    document.getElementById('cm-lawyer').value.trim(),
     file_date: document.getElementById('cm-file-date').value,
-    outcome:   document.getElementById('cm-outcome').value
+    outcome:   document.getElementById('cm-outcome').value.trim()
   };
-  // ── تزامن window.data ──
-  window.data = data;
   showToast('✅ تم حفظ بيانات القضية');
   closeCaseModal();
-  // Sync to Supabase
-  if (window.sbSaveAll) {
-    window.sbSaveAll([...data]).catch(function(err) {
-      showToast('⚠️ تعذّر الحفظ في قاعدة البيانات: ' + err.message);
-      console.error('Supabase save error (case data):', err);
-    });
-  }
 };
 </script>
 <div id="case-modal">
