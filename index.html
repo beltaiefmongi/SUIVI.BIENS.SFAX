@@ -3687,12 +3687,13 @@ window.renderFinance = function() {
           " ${!canAddTanbeeh?'disabled':''}>📢 إضافة تنبيه (${tanbeehCount}/3)</button>
         </div>
         <div class="fiche-action-label">📋 الإجراء المعتمد</div>
-        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)">
+        <select class="fiche-action-select" onchange="saveFinanceAction(${p.num}, this.value)" onmousedown="this.dataset.prevValue=this.value">
           <option value=""                   ${savedAction===''?'selected':''}>— اختر الإجراء —</option>
           <option value="التنبيه على المتسوغ" ${savedAction==='التنبيه على المتسوغ'?'selected':''}>📢 التنبيه على المتسوغ</option>
           <option value="الحفظ والمتابعة"    ${savedAction==='الحفظ والمتابعة'?'selected':''}>📁 الحفظ والمتابعة</option>
           <option value="رفع قضية استعجالية" ${savedAction==='رفع قضية استعجالية'?'selected':''}>⚖️ رفع قضية استعجالية</option>
         </select>
+        ${savedAction === 'رفع قضية استعجالية' ? `<button onclick="openCaseModal(${p.num})" style="margin-top:6px;width:100%;padding:7px 10px;border-radius:8px;background:#f59e0b;color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer">✏️ تعديل بيانات القضية الاستعجالية</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -3738,6 +3739,13 @@ window.saveFinanceAction = function(num, value) {
   if (idx === -1) return;
   if (!data[idx].rental) data[idx].rental = {};
   data[idx].rental.action_decision = value;
+  // ── تزامن window.data ──
+  window.data = data;
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      console.error('Supabase save error (action_decision):', err);
+    });
+  }
   if (value === 'التنبيه على المتسوغ') {
     const list = data[idx].rental.tanbeeh_list || [];
     if (list.length >= 3) {
@@ -3954,17 +3962,18 @@ window.saveTanbeeh = function() {
 .cm-field { display: flex; flex-direction: column; gap: 5px; }
 .cm-field.full { grid-column: 1 / -1; }
 .cm-field label { font-size: 12px; font-weight: 800; color: #555; }
-.cm-field input, .cm-field textarea {
+.cm-field input, .cm-field textarea, .cm-field select {
   padding: 9px 12px;
   border: 1.5px solid #d1d5db;
   border-radius: 10px;
   font-family: inherit; font-size: 13px; color: #0d2b4e;
   background: #fafafa;
 }
-.cm-field input:focus, .cm-field textarea:focus {
+.cm-field input:focus, .cm-field textarea:focus, .cm-field select:focus {
   outline: none; border-color: #d97706; background: #fff;
 }
 .cm-field textarea { resize: vertical; min-height: 70px; }
+.cm-field select { cursor: pointer; appearance: auto; }
 .cm-footer {
   display: flex; gap: 10px;
   padding: 14px 22px 20px;
@@ -4019,10 +4028,19 @@ window.saveCaseModal = function() {
     defendant: document.getElementById('cm-defendant').value.trim(),
     lawyer:    document.getElementById('cm-lawyer').value.trim(),
     file_date: document.getElementById('cm-file-date').value,
-    outcome:   document.getElementById('cm-outcome').value.trim()
+    outcome:   document.getElementById('cm-outcome').value
   };
+  // ── تزامن window.data ──
+  window.data = data;
   showToast('✅ تم حفظ بيانات القضية');
   closeCaseModal();
+  // Sync to Supabase
+  if (window.sbSaveAll) {
+    window.sbSaveAll([...data]).catch(function(err) {
+      showToast('⚠️ تعذّر الحفظ في قاعدة البيانات: ' + err.message);
+      console.error('Supabase save error (case data):', err);
+    });
+  }
 };
 </script>
 <div id="case-modal">
@@ -4062,7 +4080,13 @@ window.saveCaseModal = function() {
       </div>
       <div class="cm-field full">
         <label>🔖 مآل القضية</label>
-        <textarea id="cm-outcome" placeholder="نتيجة أو وضع القضية الحالي..."></textarea>
+        <select id="cm-outcome">
+          <option value="">-- اختر --</option>
+          <option value="منشورة">منشورة</option>
+          <option value="حكم ابتدائي">حكم ابتدائي</option>
+          <option value="حكم استئنافي">حكم استئنافي</option>
+          <option value="قرار تعقيبي">قرار تعقيبي</option>
+        </select>
       </div>
     </div>
     <div class="cm-footer">
